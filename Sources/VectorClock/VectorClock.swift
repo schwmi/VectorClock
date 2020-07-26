@@ -1,7 +1,17 @@
 
-struct VectorClock<ActorID: Equatable & Hashable> {
+public struct VectorClock<ActorID: Equatable & Hashable> {
     
     private var clocksByActors: [ActorID: Int]
+    
+    // MARK: Lifecycle
+    
+    public init() {
+        self.init(clocksByActors: [:])
+    }
+    
+    init(clocksByActors: [ActorID: Int]) {
+        self.clocksByActors = clocksByActors
+    }
     
     // MARK: - VectorClock
     
@@ -21,7 +31,7 @@ struct VectorClock<ActorID: Equatable & Hashable> {
 
 extension VectorClock: CustomStringConvertible {
 
-    var description: String {
+    public var description: String {
         let clocks = self.clocksByActors.map { "\($0.key)=\($0.value)" }.sorted(by: <).joined(separator: ", ")
         return "<\(clocks)>"
     }

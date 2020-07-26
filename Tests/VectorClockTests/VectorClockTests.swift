@@ -1,15 +1,36 @@
 import XCTest
 @testable import VectorClock
 
+
 final class VectorClockTests: XCTestCase {
-    func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
-        XCTAssertEqual(VectorClock().text, "Hello, World!")
+    
+    func testNewEmptyClock() {
+        let clock = VectorClock<String>()
+        XCTAssertEqual(clock.description, "<>")
+    }
+    
+    func testIncrement() {
+        let clock = VectorClock<String>()
+        
+        // Increment actor A
+        let incrementedA = clock.incrementing("A")
+        XCTAssertEqual(incrementedA.description, "<A=1>")
+        
+        // Increment actor B
+        let incrementedAB = incrementedA.incrementing("B")
+        XCTAssertEqual(incrementedAB.description, "<A=1, B=1>")
+        
+        // Increment actor B again
+        let incrementedABB = incrementedAB.incrementing("B")
+        XCTAssertEqual(incrementedABB.description, "<A=1, B=2>")
+        
+        // Increment actor A again
+        let incrementedABBA = incrementedABB.incrementing("A")
+        XCTAssertEqual(incrementedABBA.description, "<A=2, B=2>")
     }
 
     static var allTests = [
-        ("testExample", testExample),
+        ("testIncrement", testIncrement),
+        ("testNewEmptyClock", testNewEmptyClock)
     ]
 }
