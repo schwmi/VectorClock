@@ -1,29 +1,38 @@
+import Foundation
+
 /// A Vector clock which ensures a total order by additionally adding a timestamp
 public struct VectorClock<ActorID: Equatable & Hashable> {
     
+    public typealias TimestampProvider = () -> TimeInterval
+    
+    private var timestampProvider: TimestampProvider
     private var clocksByActors: [ActorID: Int]
+    private var timestamp: TimeInterval
     
     // MARK: Lifecycle
     
-    public init() {
-        self.init(clocksByActors: [:])
+    public init(timestampProvider: TimestampProvider? = nil) {
+        self.init(clocksByActors: [:], timestampProvider: timestampProvider)
     }
     
-    init(clocksByActors: [ActorID: Int]) {
+    init(clocksByActors: [ActorID: Int], timestampProvider: TimestampProvider? = nil) {
         self.clocksByActors = clocksByActors
+        let timestampProvider = timestampProvider ?? { Date().timeIntervalSince1970 }
+        self.timestampProvider = timestampProvider
+        self.timestamp = timestampProvider()
     }
     
     // MARK: - VectorClock
     
     func incrementing(_ actorID: ActorID) -> VectorClock {
-        var incremented = self
-        incremented.clocksByActors[actorID] = self.clocksByActors[actorID, default: 0] + 1
-        return incremented
+        var incrementedClocks = self.clocksByActors
+        incrementedClocks[actorID] = incrementedClocks[actorID, default: 0] + 1
+        return VectorClock(clocksByActors: incrementedClocks, timestampProvider: self.timestampProvider)
     }
     
     func merging(_ clock: VectorClock) -> VectorClock {
         let mergedClocks = self.clocksByActors.merging(clock.clocksByActors) { max($0, $1) }
-        return VectorClock(clocksByActors: mergedClocks)
+        return VectorClock(clocksByActors: mergedClocks, timestampProvider: self.timestampProvider)
     }
 }
 
@@ -46,7 +55,11 @@ extension VectorClock: Comparable {
         if isEqual == true && lhs.clocksByActors.count == rhs.clocksByActors.count {
             return false
         } else {
-            return true
+            if rhs < lhs {
+                return lhs.timestamp < rhs.timestamp
+            } else {
+                return true
+            }
         }
     }
     
@@ -73,7 +86,11 @@ extension VectorClock: Comparable {
                 break
             }
         }
-        return (lhsHasGreaterComponent && rhsHasGreaterCompnent) || onlyEqualComponents
+        if (lhsHasGreaterComponent && rhsHasGreaterCompnent) || onlyEqualComponents {
+            return lhs.timestamp == rhs.timestamp
+        } else {
+            return false
+        }
     }
 }
 

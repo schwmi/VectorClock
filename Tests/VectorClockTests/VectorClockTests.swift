@@ -45,10 +45,10 @@ final class VectorClockTests: XCTestCase {
         XCTAssertEqual(mergedAB.description, "<A=1, B=1>")
     }
     
-    func testComparison() {
+    func testComparisonWithConstantTime() {
         // Test empty clock comparison
-        let clock1 = VectorClock<String>()
-        let clock2 = VectorClock<String>()
+        let clock1 = VectorClock<String>(timestampProvider: { return 0 })
+        let clock2 = VectorClock<String>(timestampProvider: { return 0 })
         XCTAssertEqual(clock1, clock2)
         
         // Increment actor A
@@ -62,10 +62,31 @@ final class VectorClockTests: XCTestCase {
         XCTAssertFalse(clock1A < clock2B)
         XCTAssertFalse(clock1A > clock2B)
     }
+    
+    func testComparisonWithIncreasingTime() {
+        var currentTime: TimeInterval = 0
+        let provider: VectorClock.TimestampProvider = {
+            currentTime = currentTime + 1
+            return currentTime
+        }
+        // Test empty clock comparison
+        let clock1 = VectorClock<String>(timestampProvider: provider)
+        let clock2 = VectorClock<String>(timestampProvider: provider)
+        XCTAssertEqual(clock1, clock2)
+        
+        // Increment actor A
+        let clock1A = clock1.incrementing("A")
+        XCTAssertTrue(clock1 < clock1A)
+        XCTAssertTrue(clock1A == clock1A)
+        
+        // Increment actor B
+        let clock2B = clock2.incrementing("B")
+        XCTAssertTrue(clock1A < clock2B)
+    }
 
     static var allTests = [
         ("testIncrement", testIncrement),
-        ("testComparison", testComparison),
+        ("testComparisonWithConstantTime", testComparisonWithConstantTime),
         ("testMerge", testMerge),
         ("testNewEmptyClock", testNewEmptyClock)
     ]
