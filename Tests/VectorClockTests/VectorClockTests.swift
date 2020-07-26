@@ -49,21 +49,23 @@ final class VectorClockTests: XCTestCase {
         // Test empty clock comparison
         let clock1 = VectorClock<String>()
         let clock2 = VectorClock<String>()
-      //  XCTAssertEqual(clock1, clock2)
+        XCTAssertEqual(clock1, clock2)
         
         // Increment actor A
         let clock1A = clock1.incrementing("A")
-       // XCTAssertTrue(clock1 < clock1A)
-       // XCTAssertTrue(clock1A == clock1A)
+        XCTAssertTrue(clock1 < clock1A)
+        XCTAssertTrue(clock1A == clock1A)
         
         // Increment actor B
         let clock2B = clock2.incrementing("B")
         XCTAssertTrue(clock1A == clock2B)
-    
+        XCTAssertFalse(clock1A < clock2B)
+        XCTAssertFalse(clock1A > clock2B)
     }
 
     static var allTests = [
         ("testIncrement", testIncrement),
+        ("testComparison", testComparison),
         ("testMerge", testMerge),
         ("testNewEmptyClock", testNewEmptyClock)
     ]
