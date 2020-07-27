@@ -3,6 +3,11 @@ import Foundation
 /// A Vector clock which ensures a total order by additionally adding a timestamp
 public struct VectorClock<ActorID: Equatable & Hashable> {
     
+    struct UnambigousTimestamp {
+        var actorID: ActorID
+        var timestamp: TimeInterval
+    }
+    
     public typealias TimestampProvider = () -> TimeInterval
     
     private var timestampProvider: TimestampProvider
