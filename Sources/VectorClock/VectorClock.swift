@@ -21,14 +21,7 @@ public struct VectorClock<ActorID: Comparable & Hashable> {
         self.clocksByActors = [actorID: 0]
         self.timestamp = .init(actorID: actorID, timestamp: timestampProvider())
     }
-    
-//    init(clocksByActors: [ActorID: Int], timestampProvider: TimestampProvider? = nil) {
-//        self.clocksByActors = clocksByActors
-//        let timestampProvider = timestampProvider ?? { Date().timeIntervalSince1970 }
-//        self.timestampProvider = timestampProvider
-//        self.timestamp = timestampProvider()
-//    }
-//
+
     // MARK: - VectorClock
     
     func incrementing(_ actorID: ActorID) -> VectorClock {
@@ -41,7 +34,7 @@ public struct VectorClock<ActorID: Comparable & Hashable> {
     func merging(_ clock: VectorClock) -> VectorClock {
         var merged = self
         merged.clocksByActors = self.clocksByActors.merging(clock.clocksByActors) { max($0, $1) }
-       // merged.timestamp  = max timestamp
+        merged.timestamp = max(self.timestamp, clock.timestamp)
         return merged
     }
 }
