@@ -58,6 +58,7 @@ final class VectorClockTests: XCTestCase {
         
         // Increment actor B
         let clock2B = clock2.incrementing("B")
+        XCTAssertEqual(clock1A.partialOrder(other: clock2B), .concurrent)
         XCTAssertTrue(clock1A < clock2B)
         XCTAssertFalse(clock1A > clock2B)
     }
@@ -71,6 +72,7 @@ final class VectorClockTests: XCTestCase {
         // Test empty clock comparison
         let clock1 = VectorClock<String>(actorID: "A", timestampProvider: provider)
         let clock2 = VectorClock<String>(actorID: "A", timestampProvider: provider)
+        XCTAssertEqual(clock1.partialOrder(other: clock2), .concurrent)
         XCTAssertTrue(clock1 < clock2)
         
         // Increment actor A
@@ -86,6 +88,7 @@ final class VectorClockTests: XCTestCase {
     static var allTests = [
         ("testIncrement", testIncrement),
         ("testComparisonWithConstantTime", testComparisonWithConstantTime),
+        ("testComparisonWithIncreasingTime", testComparisonWithIncreasingTime),
         ("testMerge", testMerge),
         ("testNewEmptyClock", testNewEmptyClock)
     ]
