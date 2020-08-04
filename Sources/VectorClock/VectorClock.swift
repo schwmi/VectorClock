@@ -1,7 +1,7 @@
 import Foundation
 
 /// A Vector clock which ensures a total order by additionally adding a timestamp
-public struct VectorClock<ActorID: Equatable & Hashable> {
+public struct VectorClock<ActorID: Comparable & Hashable> {
     
     struct UnambigousTimestamp {
         var actorID: ActorID
@@ -12,36 +12,52 @@ public struct VectorClock<ActorID: Equatable & Hashable> {
     
     private var timestampProvider: TimestampProvider
     private var clocksByActors: [ActorID: Int]
-    private var timestamp: TimeInterval
+    private var timestamp: UnambigousTimestamp
     
     // MARK: Lifecycle
     
-    public init(timestampProvider: TimestampProvider? = nil) {
-        self.init(clocksByActors: [:], timestampProvider: timestampProvider)
-    }
-    
-    init(clocksByActors: [ActorID: Int], timestampProvider: TimestampProvider? = nil) {
-        self.clocksByActors = clocksByActors
-        let timestampProvider = timestampProvider ?? { Date().timeIntervalSince1970 }
+    public init(actorID: ActorID, timestampProvider: @escaping TimestampProvider = { Date().timeIntervalSince1970 }) {
         self.timestampProvider = timestampProvider
-        self.timestamp = timestampProvider()
+        self.clocksByActors = [actorID: 0]
+        self.timestamp = .init(actorID: actorID, timestamp: timestampProvider())
     }
     
+//    init(clocksByActors: [ActorID: Int], timestampProvider: TimestampProvider? = nil) {
+//        self.clocksByActors = clocksByActors
+//        let timestampProvider = timestampProvider ?? { Date().timeIntervalSince1970 }
+//        self.timestampProvider = timestampProvider
+//        self.timestamp = timestampProvider()
+//    }
+//
     // MARK: - VectorClock
     
     func incrementing(_ actorID: ActorID) -> VectorClock {
-        var incrementedClocks = self.clocksByActors
-        incrementedClocks[actorID] = incrementedClocks[actorID, default: 0] + 1
-        return VectorClock(clocksByActors: incrementedClocks, timestampProvider: self.timestampProvider)
+        var incrementedClock = self
+        incrementedClock.clocksByActors[actorID] = self.clocksByActors[actorID, default: 0] + 1
+        incrementedClock.timestamp = .init(actorID: actorID, timestamp: self.timestampProvider())
+        return incrementedClock
     }
     
     func merging(_ clock: VectorClock) -> VectorClock {
-        let mergedClocks = self.clocksByActors.merging(clock.clocksByActors) { max($0, $1) }
-        return VectorClock(clocksByActors: mergedClocks, timestampProvider: self.timestampProvider)
+        var merged = self
+        merged.clocksByActors = self.clocksByActors.merging(clock.clocksByActors) { max($0, $1) }
+       // merged.timestamp  = max timestamp
+        return merged
     }
 }
 
 // MARK: - Comparable
+
+extension VectorClock.UnambigousTimestamp: Comparable {
+
+    static func < (lhs: VectorClock<ActorID>.UnambigousTimestamp, rhs: VectorClock<ActorID>.UnambigousTimestamp) -> Bool {
+        if lhs.timestamp == rhs.timestamp {
+            return lhs.actorID < rhs.actorID
+        } else {
+            return lhs.timestamp < rhs.timestamp
+        }
+    }
+}
 
 extension VectorClock: Comparable {
 
@@ -61,7 +77,7 @@ extension VectorClock: Comparable {
             return false
         } else {
             if rhs < lhs {
-                return lhs.timestamp < rhs.timestamp
+                return false//lhs.timestamp < rhs.timestamp
             } else {
                 return true
             }
