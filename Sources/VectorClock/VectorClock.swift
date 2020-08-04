@@ -53,57 +53,32 @@ extension VectorClock.UnambigousTimestamp: Comparable {
 }
 
 extension VectorClock: Comparable {
+    public static func == (lhs: VectorClock<ActorID>, rhs: VectorClock<ActorID>) -> Bool {
+        return (lhs < rhs) == false && (rhs > lhs) == false
+    }
+
 
     public static func < (lhs: VectorClock<ActorID>, rhs: VectorClock<ActorID>) -> Bool {
-        var isEqual = true
-        for (key, value) in lhs.clocksByActors {
-            let rhsValue = rhs.clocksByActors[key, default: 0]
-            if value <= rhsValue {
-                if isEqual && value < rhsValue {
-                    isEqual = false
-                }
-            } else {
-                return false
+        var lhsGreater = false
+        var rhsGreater = false
+        let actors = Set(lhs.clocksByActors.keys).union(Set(rhs.clocksByActors.keys))
+        for actor in actors {
+            let lhsValue = lhs.clocksByActors[actor, default: 0]
+            let rhsValue = rhs.clocksByActors[actor, default: 0]
+
+            if lhsValue > rhsValue {
+                lhsGreater = true
+            } else if rhsValue > lhsValue {
+                rhsGreater = true
+            }
+            if lhsGreater && rhsGreater {
+                return lhs.timestamp < rhs.timestamp
             }
         }
-        if isEqual == true && lhs.clocksByActors.count == rhs.clocksByActors.count {
-            return false
+        if lhsGreater != rhsGreater {
+            return rhsGreater
         } else {
-            if rhs < lhs {
-                return false//lhs.timestamp < rhs.timestamp
-            } else {
-                return true
-            }
-        }
-    }
-    
-    public static func == (lhs: VectorClock<ActorID>, rhs: VectorClock<ActorID>) -> Bool {
-        guard lhs.clocksByActors.count > 0 || rhs.clocksByActors.count > 0 else { return true }
-        
-        var lhsHasGreaterComponent = false
-        var rhsHasGreaterCompnent = false
-        var onlyEqualComponents = true
-        for (key, value) in lhs.clocksByActors {
-            let otherValue = rhs.clocksByActors[key, default: 0]
-            if value > otherValue {
-                lhsHasGreaterComponent = true
-                onlyEqualComponents = false
-                break
-            }
-        }
-        
-        for (key, value) in rhs.clocksByActors {
-            let otherValue = lhs.clocksByActors[key, default: 0]
-            if value > otherValue {
-                rhsHasGreaterCompnent = true
-                onlyEqualComponents = false
-                break
-            }
-        }
-        if (lhsHasGreaterComponent && rhsHasGreaterCompnent) || onlyEqualComponents {
-            return lhs.timestamp == rhs.timestamp
-        } else {
-            return false
+            return lhs.timestamp < rhs.timestamp
         }
     }
 }
