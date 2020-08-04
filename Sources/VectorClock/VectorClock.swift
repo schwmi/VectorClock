@@ -110,10 +110,18 @@ extension VectorClock: Comparable {
 
 // MARK: CustomStringConvertible
 
+extension VectorClock.UnambigousTimestamp: CustomStringConvertible {
+
+    public var description: String {
+        let formattedTimestamp = String(format: "%.2f", self.timestamp)
+        return "t: \(self.actorID)(\(formattedTimestamp))"
+    }
+}
+
 extension VectorClock: CustomStringConvertible {
 
     public var description: String {
         let clocks = self.clocksByActors.map { "\($0.key)=\($0.value)" }.sorted(by: <).joined(separator: ", ")
-        return "<\(clocks)>"
+        return "<\(clocks) | \(self.timestamp)>"
     }
 }
