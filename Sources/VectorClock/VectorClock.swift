@@ -2,6 +2,12 @@ import Foundation
 
 /// A Vector clock which ensures a total order by additionally adding a timestamp
 public struct VectorClock<ActorID: Comparable & Hashable> {
+
+    enum PartialOrder {
+        case before
+        case after
+        case concurrent
+    }
     
     struct UnambigousTimestamp {
         var actorID: ActorID
@@ -37,6 +43,30 @@ public struct VectorClock<ActorID: Comparable & Hashable> {
         merged.timestamp = max(self.timestamp, clock.timestamp)
         return merged
     }
+
+    func partialOrder(other: VectorClock) -> PartialOrder {
+        var selfGreater = false
+        var otherGreater = false
+        let actors = Set(self.clocksByActors.keys).union(Set(other.clocksByActors.keys))
+        for actor in actors {
+            let selfValue = self.clocksByActors[actor, default: 0]
+            let otherValue = other.clocksByActors[actor, default: 0]
+
+            if selfValue > otherValue {
+                selfGreater = true
+            } else if otherValue > selfValue {
+                otherGreater = true
+            }
+            if selfGreater && otherGreater {
+                return .concurrent
+            }
+        }
+        if selfGreater != otherGreater {
+            return selfGreater ? .after : .before
+        } else {
+            return .concurrent
+        }
+    }
 }
 
 // MARK: - Comparable
@@ -53,32 +83,22 @@ extension VectorClock.UnambigousTimestamp: Comparable {
 }
 
 extension VectorClock: Comparable {
+
     public static func == (lhs: VectorClock<ActorID>, rhs: VectorClock<ActorID>) -> Bool {
-        return (lhs < rhs) == false && (rhs > lhs) == false
+        let partialOrder = lhs.partialOrder(other: rhs)
+        if partialOrder == .concurrent {
+            return lhs.timestamp == rhs.timestamp
+        } else {
+            return false
+        }
     }
 
-
     public static func < (lhs: VectorClock<ActorID>, rhs: VectorClock<ActorID>) -> Bool {
-        var lhsGreater = false
-        var rhsGreater = false
-        let actors = Set(lhs.clocksByActors.keys).union(Set(rhs.clocksByActors.keys))
-        for actor in actors {
-            let lhsValue = lhs.clocksByActors[actor, default: 0]
-            let rhsValue = rhs.clocksByActors[actor, default: 0]
-
-            if lhsValue > rhsValue {
-                lhsGreater = true
-            } else if rhsValue > lhsValue {
-                rhsGreater = true
-            }
-            if lhsGreater && rhsGreater {
-                return lhs.timestamp < rhs.timestamp
-            }
-        }
-        if lhsGreater != rhsGreater {
-            return rhsGreater
-        } else {
+        let partialOrder = lhs.partialOrder(other: rhs)
+        if partialOrder == .concurrent {
             return lhs.timestamp < rhs.timestamp
+        } else {
+            return partialOrder == .before
         }
     }
 }
