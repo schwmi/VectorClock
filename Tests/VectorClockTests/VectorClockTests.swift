@@ -85,6 +85,19 @@ final class VectorClockTests: XCTestCase {
         XCTAssertTrue(clock1A < clock2B)
     }
 
+    func testSortingPerformance() {
+        var clocks = Set<VectorClock<String>>()
+        let actors = ["A", "B", "C", "D"]
+        let clock = VectorClock(actorID: "A", timestampProvider: self.mockTimestampProvider())
+        clocks.insert(clock)
+        for _ in 0..<5000 {
+            clocks.insert(clock.incrementing(actors.randomElement()!))
+        }
+        self.measure {
+            _ = clocks.sorted()
+        }
+    }
+
     static var allTests = [
         ("testIncrement", testIncrement),
         ("testComparisonWithConstantTime", testComparisonWithConstantTime),

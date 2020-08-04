@@ -10,7 +10,7 @@ public struct VectorClock<ActorID: Comparable & Hashable> {
         case concurrent
     }
     
-    struct UnambigousTimestamp {
+    struct UnambigousTimestamp: Hashable {
         var actorID: ActorID
         var timestamp: TimeInterval
     }
@@ -76,6 +76,16 @@ public struct VectorClock<ActorID: Comparable & Hashable> {
         } else {
             return .concurrent
         }
+    }
+}
+
+// MARK: - Hashable
+
+extension VectorClock: Hashable {
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(self.clocksByActors)
+        hasher.combine(self.timestamp)
     }
 }
 
