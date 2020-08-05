@@ -4,6 +4,14 @@ import Foundation
 /// A Vector clock which ensures a total order by additionally adding a timestamp
 public struct VectorClock<ActorID: Comparable & Hashable> {
 
+    public enum TimestampProviderStrategy: Int, Codable {
+        case unixTime
+        /// start by 0.0, increase by 1.0 (primarily for testing purposes)
+        case monotonicIncrease
+        // Always returns constant timestampe (0.0)
+        case constant
+    }
+
     enum PartialOrder {
         case before
         case after
@@ -14,19 +22,19 @@ public struct VectorClock<ActorID: Comparable & Hashable> {
         var actorID: ActorID
         var timestamp: TimeInterval
     }
-    
-    public typealias TimestampProvider = () -> TimeInterval
-    
-    private var timestampProvider: TimestampProvider
+
+    private let timestampProvider: () -> TimeInterval
+    private var timestampProviderStrategy: TimestampProviderStrategy
     private var clocksByActors: [ActorID: Int]
     private var timestamp: UnambigousTimestamp
     
     // MARK: Lifecycle
     
-    public init(actorID: ActorID, timestampProvider: @escaping TimestampProvider = { Date().timeIntervalSince1970 }) {
-        self.timestampProvider = timestampProvider
+    public init(actorID: ActorID, timestampProviderStrategy: TimestampProviderStrategy = .unixTime) {
+        self.timestampProviderStrategy = timestampProviderStrategy
         self.clocksByActors = [actorID: 0]
-        self.timestamp = .init(actorID: actorID, timestamp: timestampProvider())
+        self.timestampProvider = timestampProviderStrategy.makeProvider()
+        self.timestamp = .init(actorID: actorID, timestamp: self.timestampProvider())
     }
 
     // MARK: - VectorClock
@@ -138,5 +146,27 @@ extension VectorClock: CustomStringConvertible {
     public var description: String {
         let clocks = self.clocksByActors.map { "\($0.key)=\($0.value)" }.sorted(by: <).joined(separator: ", ")
         return "<\(clocks) | \(self.timestamp)>"
+    }
+}
+
+// MARK: - Private
+
+// MARK: - TimestampProviderStrategy
+
+private extension VectorClock.TimestampProviderStrategy {
+
+    func makeProvider() -> () -> TimeInterval {
+        switch self {
+        case .unixTime:
+            return { Date().timeIntervalSince1970 }
+        case .monotonicIncrease:
+            var current: TimeInterval = 0.0
+            return {
+                defer { current += 1.0 }
+                return current
+            }
+        case .constant:
+            return { 0.0 }
+        }
     }
 }

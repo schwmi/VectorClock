@@ -5,12 +5,12 @@ import XCTest
 final class VectorClockTests: XCTestCase {
     
     func testNewEmptyClock() {
-        let clock = VectorClock(actorID: "A", timestampProvider: self.mockTimestampProvider())
+        let clock = VectorClock(actorID: "A", timestampProviderStrategy: .monotonicIncrease)
         XCTAssertEqual(clock.description, "<A=0 | t: A(0.00)>")
     }
     
     func testIncrement() {
-        let clock = VectorClock(actorID: "A", timestampProvider: self.mockTimestampProvider())
+        let clock = VectorClock(actorID: "A", timestampProviderStrategy: .monotonicIncrease)
         
         // Increment actor A
         let incrementedA = clock.incrementing("A")
@@ -30,7 +30,7 @@ final class VectorClockTests: XCTestCase {
     }
     
     func testMerge() {
-        let clock = VectorClock(actorID: "A", timestampProvider: self.mockTimestampProvider())
+        let clock = VectorClock(actorID: "A", timestampProviderStrategy: .monotonicIncrease)
         
         // Increment actor A
         let incrementedA = clock.incrementing("A")
@@ -47,8 +47,8 @@ final class VectorClockTests: XCTestCase {
     
     func testComparisonWithConstantTime() {
         // Test empty clock comparison
-        let clock1 = VectorClock(actorID: "A", timestampProvider: { return 0 })
-        let clock2 = VectorClock(actorID: "A", timestampProvider: { return 0 })
+        let clock1 = VectorClock(actorID: "A", timestampProviderStrategy: .constant)
+        let clock2 = VectorClock(actorID: "A", timestampProviderStrategy: .constant)
         XCTAssertEqual(clock1, clock2)
         
         // Increment actor A
@@ -64,14 +64,10 @@ final class VectorClockTests: XCTestCase {
     }
     
     func testComparisonWithIncreasingTime() {
-        var currentTime: TimeInterval = 0
-        let provider: VectorClock.TimestampProvider = {
-            currentTime = currentTime + 1
-            return currentTime
-        }
         // Test empty clock comparison
-        let clock1 = VectorClock(actorID: "A", timestampProvider: provider)
-        let clock2 = VectorClock(actorID: "A", timestampProvider: provider)
+        let clock1 = VectorClock(actorID: "A", timestampProviderStrategy: .unixTime)
+        Thread.sleep(forTimeInterval: 0.01)
+        let clock2 = VectorClock(actorID: "A",  timestampProviderStrategy: .unixTime)
         XCTAssertEqual(clock1.partialOrder(other: clock2), .concurrent)
         XCTAssertTrue(clock1 < clock2)
         
@@ -88,7 +84,7 @@ final class VectorClockTests: XCTestCase {
     func testSortingPerformance() {
         var clocks = Set<VectorClock<String>>()
         let actors = ["A", "B", "C", "D"]
-        let clock = VectorClock(actorID: "A", timestampProvider: self.mockTimestampProvider())
+        let clock = VectorClock(actorID: "A", timestampProviderStrategy: .monotonicIncrease)
         clocks.insert(clock)
         for _ in 0..<5000 {
             clocks.insert(clock.incrementing(actors.randomElement()!))
@@ -105,17 +101,4 @@ final class VectorClockTests: XCTestCase {
         ("testMerge", testMerge),
         ("testNewEmptyClock", testNewEmptyClock)
     ]
-}
-
-// MARK: - Private
-
-private extension VectorClockTests {
-
-    func mockTimestampProvider(startingFrom clock: TimeInterval = 0) -> VectorClock<String>.TimestampProvider {
-        var clock = clock
-        return {
-            defer { clock = clock + 1 }
-            return clock
-        }
-    }
 }
