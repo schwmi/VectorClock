@@ -6,7 +6,7 @@ public struct VectorClock<ActorID: Comparable & Hashable & Codable> {
 
     public enum TimestampProviderStrategy: Int, Codable {
         case unixTime
-        /// start by 0.0, increase by 1.0 (primarily for testing purposes)
+        /// start by 1.0, increase by 1.0 (primarily for testing purposes)
         case monotonicIncrease
         // Always returns constant timestampe (0.0)
         case constant
@@ -192,7 +192,7 @@ private extension VectorClock.TimestampProviderStrategy {
         case .monotonicIncrease:
             var current: TimeInterval = start
             return {
-                defer { current += 1.0 }
+                current += 1.0
                 return current
             }
         case .constant:

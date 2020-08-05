@@ -6,7 +6,7 @@ final class VectorClockTests: XCTestCase {
     
     func testNewEmptyClock() {
         let clock = VectorClock(actorID: "A", timestampProviderStrategy: .monotonicIncrease)
-        XCTAssertEqual(clock.description, "<A=0 | t: A(0.00)>")
+        XCTAssertEqual(clock.description, "<A=0 | t: A(1.00)>")
     }
     
     func testIncrement() {
@@ -14,19 +14,19 @@ final class VectorClockTests: XCTestCase {
         
         // Increment actor A
         let incrementedA = clock.incrementing("A")
-        XCTAssertEqual(incrementedA.description, "<A=1 | t: A(1.00)>")
+        XCTAssertEqual(incrementedA.description, "<A=1 | t: A(2.00)>")
         
         // Increment actor B
         let incrementedAB = incrementedA.incrementing("B")
-        XCTAssertEqual(incrementedAB.description, "<A=1, B=1 | t: B(2.00)>")
+        XCTAssertEqual(incrementedAB.description, "<A=1, B=1 | t: B(3.00)>")
         
         // Increment actor B again
         let incrementedABB = incrementedAB.incrementing("B")
-        XCTAssertEqual(incrementedABB.description, "<A=1, B=2 | t: B(3.00)>")
+        XCTAssertEqual(incrementedABB.description, "<A=1, B=2 | t: B(4.00)>")
         
         // Increment actor A again
         let incrementedABBA = incrementedABB.incrementing("A")
-        XCTAssertEqual(incrementedABBA.description, "<A=2, B=2 | t: A(4.00)>")
+        XCTAssertEqual(incrementedABBA.description, "<A=2, B=2 | t: A(5.00)>")
     }
     
     func testMerge() {
@@ -34,15 +34,15 @@ final class VectorClockTests: XCTestCase {
         
         // Increment actor A
         let incrementedA = clock.incrementing("A")
-        XCTAssertEqual(incrementedA.description, "<A=1 | t: A(1.00)>")
+        XCTAssertEqual(incrementedA.description, "<A=1 | t: A(2.00)>")
         
         // Increment actor B
         let incrementedB = clock.incrementing("B")
-        XCTAssertEqual(incrementedB.description, "<A=0, B=1 | t: B(2.00)>")
+        XCTAssertEqual(incrementedB.description, "<A=0, B=1 | t: B(3.00)>")
         
         // Merge A with B
         let mergedAB = incrementedB.merging(incrementedA)
-        XCTAssertEqual(mergedAB.description, "<A=1, B=1 | t: B(2.00)>")
+        XCTAssertEqual(mergedAB.description, "<A=1, B=1 | t: B(3.00)>")
     }
     
     func testComparisonWithConstantTime() {
@@ -92,6 +92,16 @@ final class VectorClockTests: XCTestCase {
         self.measure {
             _ = clocks.sorted()
         }
+    }
+
+    func testCodable() throws {
+        let clock = VectorClock(actorID: "A", timestampProviderStrategy: .monotonicIncrease)
+        let encoded = try JSONEncoder().encode(clock)
+        let decoded = try JSONDecoder().decode(VectorClock<String>.self, from: encoded)
+        XCTAssertEqual(clock, decoded)
+        let increasedClock = decoded.incrementing("B")
+        print(increasedClock.description)
+        XCTAssertEqual(increasedClock.description, "<A=0, B=1 | t: B(2.00)>")
     }
 
     static var allTests = [
