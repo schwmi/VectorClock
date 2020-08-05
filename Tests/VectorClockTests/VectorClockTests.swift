@@ -5,12 +5,12 @@ import XCTest
 final class VectorClockTests: XCTestCase {
     
     func testNewEmptyClock() {
-        let clock = VectorClock<String>(actorID: "A", timestampProvider: self.mockTimestampProvider())
+        let clock = VectorClock(actorID: "A", timestampProvider: self.mockTimestampProvider())
         XCTAssertEqual(clock.description, "<A=0 | t: A(0.00)>")
     }
     
     func testIncrement() {
-        let clock = VectorClock<String>(actorID: "A", timestampProvider: self.mockTimestampProvider())
+        let clock = VectorClock(actorID: "A", timestampProvider: self.mockTimestampProvider())
         
         // Increment actor A
         let incrementedA = clock.incrementing("A")
@@ -30,7 +30,7 @@ final class VectorClockTests: XCTestCase {
     }
     
     func testMerge() {
-        let clock = VectorClock<String>(actorID: "A", timestampProvider: self.mockTimestampProvider())
+        let clock = VectorClock(actorID: "A", timestampProvider: self.mockTimestampProvider())
         
         // Increment actor A
         let incrementedA = clock.incrementing("A")
@@ -47,8 +47,8 @@ final class VectorClockTests: XCTestCase {
     
     func testComparisonWithConstantTime() {
         // Test empty clock comparison
-        let clock1 = VectorClock<String>(actorID: "A", timestampProvider: { return 0 })
-        let clock2 = VectorClock<String>(actorID: "A", timestampProvider: { return 0 })
+        let clock1 = VectorClock(actorID: "A", timestampProvider: { return 0 })
+        let clock2 = VectorClock(actorID: "A", timestampProvider: { return 0 })
         XCTAssertEqual(clock1, clock2)
         
         // Increment actor A
@@ -70,8 +70,8 @@ final class VectorClockTests: XCTestCase {
             return currentTime
         }
         // Test empty clock comparison
-        let clock1 = VectorClock<String>(actorID: "A", timestampProvider: provider)
-        let clock2 = VectorClock<String>(actorID: "A", timestampProvider: provider)
+        let clock1 = VectorClock(actorID: "A", timestampProvider: provider)
+        let clock2 = VectorClock(actorID: "A", timestampProvider: provider)
         XCTAssertEqual(clock1.partialOrder(other: clock2), .concurrent)
         XCTAssertTrue(clock1 < clock2)
         
