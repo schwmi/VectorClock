@@ -2,7 +2,7 @@ import Foundation
 
 
 /// A Vector clock which ensures a total order by additionally adding a timestamp
-public struct VectorClock<ActorID: Comparable & Hashable> {
+public struct VectorClock<ActorID: Comparable & Hashable & Codable> {
 
     public enum TimestampProviderStrategy: Int, Codable {
         case unixTime
@@ -18,7 +18,7 @@ public struct VectorClock<ActorID: Comparable & Hashable> {
         case concurrent
     }
     
-    struct UnambigousTimestamp: Hashable {
+    struct UnambigousTimestamp: Hashable, Codable {
         var actorID: ActorID
         var timestamp: TimeInterval
     }
@@ -84,6 +84,36 @@ public struct VectorClock<ActorID: Comparable & Hashable> {
         } else {
             return .concurrent
         }
+    }
+}
+
+// MARK: - Codable
+
+extension VectorClock: Codable {
+
+    enum CodingKeys: String, CodingKey {
+        case timestampProviderStrategy
+        case clocksByActors
+        case timestamp
+    }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        let timestamp = try values.decode(UnambigousTimestamp.self, forKey: .timestamp)
+        let clocksByActors = try values.decode([ActorID: Int].self, forKey: .clocksByActors)
+        let providerStrategy = try values.decode(TimestampProviderStrategy.self, forKey: .timestampProviderStrategy)
+
+        self.clocksByActors = clocksByActors
+        self.timestampProviderStrategy = providerStrategy
+        self.timestamp = timestamp
+        self.timestampProvider = providerStrategy.makeProvider(given: timestamp.timestamp)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.clocksByActors, forKey: .clocksByActors)
+        try container.encode(self.timestamp, forKey: .timestamp)
+        try container.encode(self.timestampProviderStrategy, forKey: .timestampProviderStrategy)
     }
 }
 
@@ -155,18 +185,18 @@ extension VectorClock: CustomStringConvertible {
 
 private extension VectorClock.TimestampProviderStrategy {
 
-    func makeProvider() -> () -> TimeInterval {
+    func makeProvider(given start: TimeInterval = 0.0) -> () -> TimeInterval {
         switch self {
         case .unixTime:
             return { Date().timeIntervalSince1970 }
         case .monotonicIncrease:
-            var current: TimeInterval = 0.0
+            var current: TimeInterval = start
             return {
                 defer { current += 1.0 }
                 return current
             }
         case .constant:
-            return { 0.0 }
+            return { start }
         }
     }
 }
