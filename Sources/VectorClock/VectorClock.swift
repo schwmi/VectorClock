@@ -12,7 +12,7 @@ public struct VectorClock<ActorID: Comparable & Hashable & Codable> {
         case constant
     }
 
-    enum PartialOrder {
+    public enum PartialOrder {
         case before
         case after
         case concurrent
@@ -42,7 +42,7 @@ public struct VectorClock<ActorID: Comparable & Hashable & Codable> {
     /// Returns an incremented VectorClock
     /// - Parameter actorID: ActorID which is responsible for the increment
     /// - Returns: A new, incremented clock
-    func incrementing(_ actorID: ActorID) -> VectorClock {
+    public func incrementing(_ actorID: ActorID) -> VectorClock {
         var incrementedClock = self
         incrementedClock.clocksByActors[actorID] = self.clocksByActors[actorID, default: 0] + 1
         incrementedClock.timestamp = .init(actorID: actorID, timestamp: self.timestampProvider())
@@ -52,7 +52,7 @@ public struct VectorClock<ActorID: Comparable & Hashable & Codable> {
     /// Returns a new, merged vector clock (max vectors)
     /// - Parameter clock: The clock which should be merged with
     /// - Returns: A new clock, representing the merged state
-    func merging(_ clock: VectorClock) -> VectorClock {
+    public func merging(_ clock: VectorClock) -> VectorClock {
         var merged = self
         merged.clocksByActors = self.clocksByActors.merging(clock.clocksByActors) { max($0, $1) }
         merged.timestamp = max(self.timestamp, clock.timestamp)
@@ -62,7 +62,7 @@ public struct VectorClock<ActorID: Comparable & Hashable & Codable> {
     /// Partial order between two Vector clocks (ignoring the timestamp for total order)
     /// - Parameter other: The clock which should be compared
     /// - Returns: The partial order
-    func partialOrder(other: VectorClock) -> PartialOrder {
+    public func partialOrder(other: VectorClock) -> PartialOrder {
         var selfGreater = false
         var otherGreater = false
         let actors = Set(self.clocksByActors.keys).union(Set(other.clocksByActors.keys))
