@@ -81,19 +81,6 @@ final class VectorClockTests: XCTestCase {
         XCTAssertEqual(clock1A.totalOrder(other: clock2B), .before)
     }
 
-    func testSortingPerformance() {
-        var clocks = Set<VectorClock<String>>()
-        let actors = ["A", "B", "C", "D"]
-        let clock = VectorClock(actorID: "A", timestampProviderStrategy: .monotonicIncrease)
-        clocks.insert(clock)
-        for _ in 0..<5000 {
-            clocks.insert(clock.incrementing(actors.randomElement()!))
-        }
-        self.measure {
-            _ = clocks.sorted(by: { $0.totalOrder(other: $1) == .before })
-        }
-    }
-
     func testCodable() throws {
         let clock = VectorClock(actorID: "A", timestampProviderStrategy: .monotonicIncrease)
         let encoded = try JSONEncoder().encode(clock)
@@ -109,6 +96,26 @@ final class VectorClockTests: XCTestCase {
         ("testComparisonWithConstantTime", testComparisonWithConstantTime),
         ("testComparisonWithIncreasingTime", testComparisonWithIncreasingTime),
         ("testMerge", testMerge),
-        ("testNewEmptyClock", testNewEmptyClock)
+        ("testNewEmptyClock", testNewEmptyClock),
+        ("testCodable", testCodable),
+        ("testSortingPerformance", testSortingPerformance)
     ]
+}
+
+// MARK: - Performance Tests
+
+extension VectorClockTests {
+
+    func testSortingPerformance() {
+        var clocks = Set<VectorClock<String>>()
+        let actors = ["A", "B", "C", "D"]
+        let clock = VectorClock(actorID: "A", timestampProviderStrategy: .monotonicIncrease)
+        clocks.insert(clock)
+        for _ in 0..<5000 {
+            clocks.insert(clock.incrementing(actors.randomElement()!))
+        }
+        self.measure {
+            _ = clocks.sorted(by: { $0.totalOrder(other: $1) == .before })
+        }
+    }
 }
