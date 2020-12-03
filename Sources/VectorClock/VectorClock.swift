@@ -12,6 +12,12 @@ public struct VectorClock<ActorID: Comparable & Hashable & Codable> {
         case constant
     }
 
+    public enum TotalOrder {
+        case before
+        case after
+        case equal
+    }
+
     public enum PartialOrder {
         case before
         case after
@@ -86,6 +92,25 @@ public struct VectorClock<ActorID: Comparable & Hashable & Codable> {
             return .equal
         }
     }
+
+    /// Total order between two Vector clocks (including the timestamp to break concurrent ties)
+    /// - Parameter other: The clock which should be compared
+    /// - Returns: The total order
+    public func totalOrder(other: VectorClock) -> TotalOrder {
+        let partialOrder = self.partialOrder(other: other)
+        switch partialOrder {
+        case .after:
+            return .after
+        case .before:
+            return .before
+        case .concurrent, .equal:
+            if self.timestamp == other.timestamp {
+                return .equal
+            } else {
+                return self.timestamp < other.timestamp ? .before : .after
+            }
+        }
+    }
 }
 
 // MARK: - Codable
@@ -120,7 +145,11 @@ extension VectorClock: Codable {
 
 // MARK: - Hashable
 
-extension VectorClock: Hashable {
+extension VectorClock: Hashable, Equatable {
+
+    public static func == (lhs: VectorClock<ActorID>, rhs: VectorClock<ActorID>) -> Bool {
+        return lhs.clocksByActors == rhs.clocksByActors && lhs.timestamp == rhs.timestamp
+    }
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(self.clocksByActors)
@@ -137,27 +166,6 @@ extension VectorClock.UnambigousTimestamp: Comparable {
             return lhs.actorID < rhs.actorID
         } else {
             return lhs.timestamp < rhs.timestamp
-        }
-    }
-}
-
-extension VectorClock: Comparable {
-
-    public static func == (lhs: VectorClock<ActorID>, rhs: VectorClock<ActorID>) -> Bool {
-        let partialOrder = lhs.partialOrder(other: rhs)
-        if partialOrder == .concurrent {
-            return lhs.timestamp == rhs.timestamp
-        } else {
-            return false
-        }
-    }
-
-    public static func < (lhs: VectorClock<ActorID>, rhs: VectorClock<ActorID>) -> Bool {
-        let partialOrder = lhs.partialOrder(other: rhs)
-        if partialOrder == .concurrent {
-            return lhs.timestamp < rhs.timestamp
-        } else {
-            return partialOrder == .before
         }
     }
 }

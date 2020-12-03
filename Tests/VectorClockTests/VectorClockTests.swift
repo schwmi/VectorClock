@@ -49,18 +49,18 @@ final class VectorClockTests: XCTestCase {
         // Test empty clock comparison
         let clock1 = VectorClock(actorID: "A", timestampProviderStrategy: .constant)
         let clock2 = VectorClock(actorID: "A", timestampProviderStrategy: .constant)
-        XCTAssertEqual(clock1, clock2)
+        XCTAssertEqual(clock1.partialOrder(other: clock2), .equal)
         
         // Increment actor A
         let clock1A = clock1.incrementing("A")
-        XCTAssertTrue(clock1 < clock1A)
-        XCTAssertTrue(clock1A == clock1A)
+        XCTAssertEqual(clock1.totalOrder(other: clock1A), .before)
+        XCTAssertEqual(clock1A.totalOrder(other: clock1A), .equal)
         
         // Increment actor B
         let clock2B = clock2.incrementing("B")
         XCTAssertEqual(clock1A.partialOrder(other: clock2B), .concurrent)
-        XCTAssertTrue(clock1A < clock2B)
-        XCTAssertFalse(clock1A > clock2B)
+        XCTAssertEqual(clock1A.totalOrder(other: clock2B), .before)
+        XCTAssertNotEqual(clock1A.totalOrder(other: clock2B), .after)
     }
     
     func testComparisonWithIncreasingTime() {
@@ -68,17 +68,17 @@ final class VectorClockTests: XCTestCase {
         let clock1 = VectorClock(actorID: "A", timestampProviderStrategy: .unixTime)
         Thread.sleep(forTimeInterval: 0.01)
         let clock2 = VectorClock(actorID: "A",  timestampProviderStrategy: .unixTime)
-        XCTAssertEqual(clock1.partialOrder(other: clock2), .concurrent)
-        XCTAssertTrue(clock1 < clock2)
+        XCTAssertEqual(clock1.partialOrder(other: clock2), .equal)
+        XCTAssertEqual(clock1.totalOrder(other: clock2), .before)
         
         // Increment actor A
         let clock1A = clock1.incrementing("A")
-        XCTAssertTrue(clock1 < clock1A)
-        XCTAssertTrue(clock1A == clock1A)
-        
+        XCTAssertEqual(clock1.totalOrder(other: clock1A), .before)
+        XCTAssertEqual(clock1A.totalOrder(other: clock1A), .equal)
+
         // Increment actor B
         let clock2B = clock2.incrementing("B")
-        XCTAssertTrue(clock1A < clock2B)
+        XCTAssertEqual(clock1A.totalOrder(other: clock2B), .before)
     }
 
     func testSortingPerformance() {
@@ -90,7 +90,7 @@ final class VectorClockTests: XCTestCase {
             clocks.insert(clock.incrementing(actors.randomElement()!))
         }
         self.measure {
-            _ = clocks.sorted()
+            _ = clocks.sorted(by: { $0.totalOrder(other: $1) == .before })
         }
     }
 
@@ -98,7 +98,7 @@ final class VectorClockTests: XCTestCase {
         let clock = VectorClock(actorID: "A", timestampProviderStrategy: .monotonicIncrease)
         let encoded = try JSONEncoder().encode(clock)
         let decoded = try JSONDecoder().decode(VectorClock<String>.self, from: encoded)
-        XCTAssertEqual(clock, decoded)
+        XCTAssertEqual(clock.totalOrder(other: decoded), .equal)
         let increasedClock = decoded.incrementing("B")
         print(increasedClock.description)
         XCTAssertEqual(increasedClock.description, "<A=0, B=1 | t: B(2.00)>")
