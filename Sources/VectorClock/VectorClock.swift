@@ -13,14 +13,14 @@ public struct VectorClock<ActorID: Comparable & Hashable & Codable> {
     }
 
     public enum TotalOrder {
-        case before
-        case after
+        case ascending
+        case descending
         case equal
     }
 
     public enum PartialOrder {
-        case before
-        case after
+        case ascending
+        case descending
         case concurrent
         case equal
     }
@@ -87,7 +87,7 @@ public struct VectorClock<ActorID: Comparable & Hashable & Codable> {
             }
         }
         if selfGreater != otherGreater {
-            return selfGreater ? .after : .before
+            return selfGreater ? .descending : .ascending
         } else {
             return .equal
         }
@@ -99,15 +99,15 @@ public struct VectorClock<ActorID: Comparable & Hashable & Codable> {
     public func totalOrder(other: VectorClock) -> TotalOrder {
         let partialOrder = self.partialOrder(other: other)
         switch partialOrder {
-        case .after:
-            return .after
-        case .before:
-            return .before
+        case .descending:
+            return .descending
+        case .ascending:
+            return .ascending
         case .concurrent, .equal:
             if self.timestamp == other.timestamp {
                 return .equal
             } else {
-                return self.timestamp < other.timestamp ? .before : .after
+                return self.timestamp < other.timestamp ? .ascending : .descending
             }
         }
     }

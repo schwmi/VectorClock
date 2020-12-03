@@ -53,14 +53,14 @@ final class VectorClockTests: XCTestCase {
         
         // Increment actor A
         let clock1A = clock1.incrementing("A")
-        XCTAssertEqual(clock1.totalOrder(other: clock1A), .before)
+        XCTAssertEqual(clock1.totalOrder(other: clock1A), .ascending)
         XCTAssertEqual(clock1A.totalOrder(other: clock1A), .equal)
         
         // Increment actor B
         let clock2B = clock2.incrementing("B")
         XCTAssertEqual(clock1A.partialOrder(other: clock2B), .concurrent)
-        XCTAssertEqual(clock1A.totalOrder(other: clock2B), .before)
-        XCTAssertNotEqual(clock1A.totalOrder(other: clock2B), .after)
+        XCTAssertEqual(clock1A.totalOrder(other: clock2B), .ascending)
+        XCTAssertNotEqual(clock1A.totalOrder(other: clock2B), .descending)
     }
     
     func testComparisonWithIncreasingTime() {
@@ -69,16 +69,16 @@ final class VectorClockTests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.01)
         let clock2 = VectorClock(actorID: "A",  timestampProviderStrategy: .unixTime)
         XCTAssertEqual(clock1.partialOrder(other: clock2), .equal)
-        XCTAssertEqual(clock1.totalOrder(other: clock2), .before)
+        XCTAssertEqual(clock1.totalOrder(other: clock2), .ascending)
         
         // Increment actor A
         let clock1A = clock1.incrementing("A")
-        XCTAssertEqual(clock1.totalOrder(other: clock1A), .before)
+        XCTAssertEqual(clock1.totalOrder(other: clock1A), .ascending)
         XCTAssertEqual(clock1A.totalOrder(other: clock1A), .equal)
 
         // Increment actor B
         let clock2B = clock2.incrementing("B")
-        XCTAssertEqual(clock1A.totalOrder(other: clock2B), .before)
+        XCTAssertEqual(clock1A.totalOrder(other: clock2B), .ascending)
     }
 
     func testCodable() throws {
@@ -115,7 +115,7 @@ extension VectorClockTests {
             clocks.insert(clock.incrementing(actors.randomElement()!))
         }
         self.measure {
-            _ = clocks.sorted(by: { $0.totalOrder(other: $1) == .before })
+            _ = clocks.sorted(by: { $0.totalOrder(other: $1) == .ascending })
         }
     }
 }
