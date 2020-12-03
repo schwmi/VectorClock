@@ -32,7 +32,7 @@ let mergedClock = clockA.merging(clockB)
 ```
 let clockA = VectorClock(actorID: "A")
 let clockB = VectorClock(actorID: "B")
-let isAscending = clockA < clockB // true
+let isAscending = clockA.totalOrder(other: clockB) // .ascending
 ```
 
 #### Partial order
