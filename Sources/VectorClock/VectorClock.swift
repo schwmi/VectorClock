@@ -16,6 +16,7 @@ public struct VectorClock<ActorID: Comparable & Hashable & Codable> {
         case before
         case after
         case concurrent
+        case equal
     }
     
     struct UnambigousTimestamp: Hashable, Codable {
@@ -82,7 +83,7 @@ public struct VectorClock<ActorID: Comparable & Hashable & Codable> {
         if selfGreater != otherGreater {
             return selfGreater ? .after : .before
         } else {
-            return .concurrent
+            return .equal
         }
     }
 }
